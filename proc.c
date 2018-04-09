@@ -26,11 +26,9 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
-// functions to setrunningticks , setwaitingticks , setpriority
 
 int setrunningticks(int time_allotment)
 {
- // time_allotment =2;
  RUNNING_THRESHOLD = time_allotment;
  return 0;
 }
@@ -350,7 +348,6 @@ for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
         continue;
       if (p->priority == 1)
         continue;
-
       ran = 1;
       flag = 1;
       // Switch to chosen process.  It is the process's job
@@ -360,22 +357,18 @@ for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
-//cprintf("running[%d]", proc->pid);
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
-
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       proc = 0;
      if(p->running_tick >=RUNNING_THRESHOLD && p->pid != 1 && p->pid != 2)
       {
         p->priority = 1;
-
       }
 struct proc *waitp;
 for (waitp= ptable.proc; waitp< &ptable.proc[NPROC]; waitp++)
      {
-
 if(waitp->priority == 1)
 {
 waitp->waiting_tick++;
@@ -386,12 +379,9 @@ waitp->waiting_tick = 0;
 waitp->priority = 0;
 p->running_tick = 0;
 }
-
-
 }
 
     }
-
 if(flag == 0)
    {
 for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -400,7 +390,6 @@ if(p->state != RUNNABLE)
         continue;
       if (p->priority == 0)
         break;
-
 int max = 0;
   struct proc *maxp;
      for (maxp = ptable.proc; maxp < &ptable.proc[NPROC]; maxp++)
@@ -413,14 +402,9 @@ if(maxp->state != RUNNABLE){
          p = maxp;
        }
      }
-//cprintf("[%d]", max);
-
-
-
 struct proc *waitp;
 for (waitp= ptable.proc; waitp< &ptable.proc[NPROC]; waitp++)
      {
-
 if(waitp->pid!=p->pid)
 {
 waitp->waiting_tick++;
@@ -431,11 +415,8 @@ waitp->waiting_tick = 0;
 waitp->priority = 0;
 p->running_tick = 0;
 }
-
-
 }
-
-      ran = 1;
+     ran = 1;
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -445,12 +426,7 @@ p->running_tick = 0;
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       proc = 0;
-
-
-
-     
-
-    }
+ }
 
    }
 }
