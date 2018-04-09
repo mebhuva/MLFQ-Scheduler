@@ -1,3 +1,4 @@
+
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -15,13 +16,47 @@ struct {
 static struct proc *initproc;
 
 int nextpid = 1;
-
-int sched_trace_enabled = 0; // for CS550 CPU/process project
+int sched_policy = 1;
+int RUNNING_THRESHOLD = 2;
+int WAITING_THRESHOLD = 4;
+int sched_trace_enabled = 1; // for CS550 CPU/process project
 
 extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+
+// functions to setrunningticks , setwaitingticks , setpriority
+
+int setrunningticks(int time_allotment)
+{
+ // time_allotment =2;
+ RUNNING_THRESHOLD = time_allotment;
+ return 0;
+}
+
+int setwaitingticks(int waiting_thres)
+{
+ WAITING_THRESHOLD = waiting_thres;
+ return 0;
+}
+
+int setpriority(int pid, int priority)
+{
+ struct proc *p;
+ acquire(&ptable.lock);
+ for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+ {
+   if (p->pid == pid)
+   {
+     p->priority = priority;
+     break;
+   }
+ }
+ release(&ptable.lock);
+ return 0;
+}
+
 
 void
 pinit(void)
@@ -50,6 +85,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = 0;
+  p->running_tick = 0;
+  p->waiting_tick = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -269,6 +307,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+ 
   int ran = 0; // CS550: to solve the 100%-CPU-utilization-when-idling problem
 
   for(;;){
@@ -278,6 +317,10 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     ran = 0;
+
+
+if(sched_policy == 0)
+{
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -297,6 +340,120 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       proc = 0;
     }
+}
+else
+{
+ int flag = 0;
+for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+     if(p->state != RUNNABLE)
+        continue;
+      if (p->priority == 1)
+        continue;
+
+      ran = 1;
+      flag = 1;
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      p->running_tick++;
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+//cprintf("running[%d]", proc->pid);
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+     if(p->running_tick >=RUNNING_THRESHOLD && p->pid != 1 && p->pid != 2)
+      {
+        p->priority = 1;
+
+      }
+struct proc *waitp;
+for (waitp= ptable.proc; waitp< &ptable.proc[NPROC]; waitp++)
+     {
+
+if(waitp->priority == 1)
+{
+waitp->waiting_tick++;
+}
+if(waitp->waiting_tick >= WAITING_THRESHOLD)
+{
+waitp->waiting_tick = 0;
+waitp->priority = 0;
+p->running_tick = 0;
+}
+
+
+}
+
+    }
+
+if(flag == 0)
+   {
+for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+if(p->state != RUNNABLE)
+        continue;
+      if (p->priority == 0)
+        break;
+
+int max = 0;
+  struct proc *maxp;
+     for (maxp = ptable.proc; maxp < &ptable.proc[NPROC]; maxp++)
+     {
+if(maxp->state != RUNNABLE){
+       continue;}
+       if (maxp->waiting_tick > max)
+       {
+         max = maxp->waiting_tick;
+         p = maxp;
+       }
+     }
+//cprintf("[%d]", max);
+
+
+
+struct proc *waitp;
+for (waitp= ptable.proc; waitp< &ptable.proc[NPROC]; waitp++)
+     {
+
+if(waitp->pid!=p->pid)
+{
+waitp->waiting_tick++;
+}
+if(waitp->waiting_tick >= WAITING_THRESHOLD)
+{
+waitp->waiting_tick = 0;
+waitp->priority = 0;
+p->running_tick = 0;
+}
+
+
+}
+
+      ran = 1;
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+
+
+
+     
+
+    }
+
+   }
+}
     release(&ptable.lock);
 
     if (ran == 0){

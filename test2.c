@@ -37,13 +37,13 @@ forktest(void)
   int fds1[2];
 
   ret = setrunningticks(2);
-  if (ret != 0)
+  if (ret < 0)
   {
     printf(1, "cannot set running ticks\n");
     exit();
   }
   ret = setwaitingticks(1000000);
-  if (ret != 0)
+    if (ret < 0)
   {
     printf(1, "cannot set waiting ticks\n");
     exit();

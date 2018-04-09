@@ -108,3 +108,53 @@ int sys_shutdown(void)
 
   return 0;
 }
+
+
+int
+sys_setrunningticks(void)
+{
+ int time_allotment;
+ if(argint(0,&time_allotment) < 0)
+ {
+   return 1;
+ }
+ return setrunningticks(time_allotment);
+}
+
+// Proj2: setwaitingticks system call implemented
+// extern int waitingticks;
+// extern int setwaitingticks(void);
+int
+sys_setwaitingticks(void)
+{
+ int waiting_thres;
+  if(argint(0,&waiting_thres) < 0)
+   {
+     return 1;
+   }
+   return setwaitingticks(waiting_thres);
+
+}
+
+// Proj2: setpriority system call implemented
+// extern int pid, priority;
+// extern void setpriority(void);
+int
+sys_setpriority(void)
+{
+ int pid,priority;
+   if(argint(0,&pid) < 0)
+   {
+     return 1;
+   }
+   if(argint(1, &priority)< 0)
+   {
+     return 1;
+   }
+
+ return setpriority(pid,priority); 
+}
+
+
+
+
