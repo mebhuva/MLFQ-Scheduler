@@ -20,6 +20,7 @@ int sched_policy = 1;
 int RUNNING_THRESHOLD = 2;
 int WAITING_THRESHOLD = 4;
 int sched_trace_enabled = 1; // for CS550 CPU/process project
+int procpriority = 0;
 
 extern void forkret(void);
 extern void trapret(void);
@@ -41,6 +42,7 @@ int setwaitingticks(int waiting_thres)
 
 int setpriority(int pid, int priority)
 {
+
  struct proc *p;
  acquire(&ptable.lock);
  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -48,6 +50,14 @@ int setpriority(int pid, int priority)
    if (p->pid == pid)
    {
      p->priority = priority;
+   if(priority == 0)
+{
+p->procpriority = 1;
+}
+else
+{
+p->procpriority = 0;
+}
      break;
    }
  }
@@ -84,6 +94,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->priority = 0;
+  p->procpriority = 0;
   p->running_tick = 0;
   p->waiting_tick = 0;
   release(&ptable.lock);
@@ -362,7 +373,7 @@ for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       proc = 0;
-     if(p->running_tick >=RUNNING_THRESHOLD && p->pid != 1 && p->pid != 2)
+     if(p->running_tick >=RUNNING_THRESHOLD && p->pid != 1 && p->pid != 2 && p->procpriority != 1)
       {
         p->priority = 1;
       }
@@ -377,7 +388,7 @@ if(waitp->waiting_tick >= WAITING_THRESHOLD)
 {
 waitp->waiting_tick = 0;
 waitp->priority = 0;
-p->running_tick = 0;
+waitp->running_tick = 0;
 }
 }
 
@@ -409,11 +420,11 @@ if(waitp->pid!=p->pid)
 {
 waitp->waiting_tick++;
 }
-if(waitp->waiting_tick >= WAITING_THRESHOLD)
+if(waitp->waiting_tick >= WAITING_THRESHOLD || waitp->procpriority == 1 )
 {
 waitp->waiting_tick = 0;
 waitp->priority = 0;
-p->running_tick = 0;
+waitp->running_tick = 0;
 }
 }
      ran = 1;
